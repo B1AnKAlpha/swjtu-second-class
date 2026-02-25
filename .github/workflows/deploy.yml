@@ -17,7 +17,7 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             set -e
-            cd /var/www/swjtu-monitor
+            cd /opt/swjtu-monitor
 
             # 拉取最新代码
             git pull origin main
