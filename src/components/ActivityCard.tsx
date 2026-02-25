@@ -22,17 +22,17 @@ export default function ActivityCard({ item }: { item: ActivityItem }) {
   const isEnded = item.regEnd ? new Date(item.regEnd) < new Date() : false
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-2 mb-2">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-3 mb-2">
         <a
           href={item.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-swjtu hover:underline leading-snug"
+          className="text-base sm:text-lg font-semibold text-swjtu hover:underline leading-snug"
         >
           {item.title}
         </a>
-        <div className="flex gap-1 shrink-0">
+        <div className="flex gap-1 shrink-0 mt-0.5">
           {item.isNew && !isEnded && (
             <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
               NEW
@@ -56,8 +56,8 @@ export default function ActivityCard({ item }: { item: ActivityItem }) {
         </p>
       )}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-        {item.location && <span>地点：{item.location}</span>}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-1.5 sm:gap-x-4 sm:gap-y-2 text-xs sm:text-sm text-gray-500 bg-gray-50 sm:bg-transparent p-2.5 sm:p-0 rounded-lg sm:rounded-none mt-1 sm:mt-0">
+        {item.location && <span className="truncate">地点：{item.location}</span>}
         {item.startTime && <span>时间：{item.startTime}</span>}
         {item.regEnd && <span>截止：{item.regEnd}</span>}
         {item.capacity > 0 && (

@@ -39,29 +39,32 @@ export default function HomePage() {
     else setStatus(value)
   }
 
-  const totalPages = Math.ceil(total / 20)
+  const totalPages = Math.ceil(total / 10)
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-swjtu">西南交大第二课堂</h1>
-          <p className="text-sm text-gray-500 mt-1">共 {total} 条活动</p>
+    <div className="max-w-4xl mx-auto px-4 py-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="text-center sm:text-left">
+          <h1 className="text-2xl sm:text-3xl font-bold text-swjtu">西南交大第二课堂</h1>
+          <p className="text-sm sm:text-base text-gray-500 mt-1.5">共 {total} 条活动</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowModal(true)} className="btn-primary">
+        <div className="flex gap-2 shrink-0">
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex-1 sm:flex-none bg-swjtu text-white text-sm px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity text-center"
+          >
             订阅通知
           </button>
           <button
             onClick={() => setShowUnsub(true)}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+            className="flex-1 sm:flex-none text-sm px-4 py-2 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors text-center"
           >
             取消订阅
           </button>
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-6">
         <FilterBar category={category} type={type} status={status} onChange={handleFilter} />
       </div>
 
@@ -102,8 +105,8 @@ export default function HomePage() {
       {showModal && <SubscribeModal onClose={() => setShowModal(false)} />}
       {showUnsub && <UnsubscribeModal onClose={() => setShowUnsub(false)} />}
 
-      <footer className="mt-12 pb-6 text-center text-xs text-gray-400 space-y-1">
-        <div className="flex items-center justify-center gap-1">
+      <footer className="mt-12 pb-6 text-center text-xs text-gray-400">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-1">
           <a
             href="https://beian.mps.gov.cn/#/query/webSearch?code=12011402001664"
             rel="noreferrer"
@@ -113,7 +116,7 @@ export default function HomePage() {
             <img src="/static/备案图标.png" alt="公安备案" className="w-4 h-4" />
             津公网安备12011402001664号
           </a>
-          <span className="mx-1">|</span>
+          <span className="hidden sm:inline mx-1">|</span>
           <a
             href="https://beian.miit.gov.cn/"
             target="_blank"

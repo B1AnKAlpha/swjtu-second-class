@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get('type') ?? ''
   const status = searchParams.get('status') ?? ''
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
-  const pageSize = 20
+  const pageSize = 10
 
   const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
 
