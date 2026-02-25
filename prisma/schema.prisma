@@ -1,0 +1,39 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Activity {
+  id          String   @id           // 课程ID，来自URL参数 courseid
+  title       String
+  description String   @default("")
+  location    String   @default("")
+  startTime   String   @default("")  // 原始字符串，如 "2024-11-08 19:30"
+  regStart    String   @default("")
+  regEnd      String   @default("")
+  capacity    Int      @default(0)
+  registered  Int      @default(0)
+  category    String   @default("")  // 七大分类之一
+  type        String   @default("")  // 竞赛/讲座/活动/课程
+  organizer   String   @default("")
+  url         String
+  firstSeen   DateTime @default(now())
+  notified    Boolean  @default(false) // 是否已发送邮件通知
+  isNew       Boolean  @default(false) // 是否为监控期间新出现的活动
+}
+
+model Subscriber {
+  id         String   @id      @default(cuid())
+  email      String   @unique
+  token      String   @unique  @default(cuid()) // 退订 token
+  categories String   @default("[]") // JSON 数组，空=订阅全部
+  types      String   @default("[]") // JSON 数组，空=订阅全部
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}

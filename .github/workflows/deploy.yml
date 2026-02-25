@@ -1,0 +1,37 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd /var/www/swjtu-monitor
+
+            # 拉取最新代码
+            git pull origin main
+
+            # 安装依赖（跳过 devDependencies 外的 optional）
+            npm ci --omit=optional
+
+            # 生成 Prisma Client + 执行数据库迁移
+            npx prisma generate
+            npx prisma migrate deploy
+
+            # 构建 Next.js
+            npm run build
+
+            # 用 PM2 重启（首次用 start，之后用 reload）
+            pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
+            pm2 save
