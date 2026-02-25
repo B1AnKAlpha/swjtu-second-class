@@ -101,6 +101,29 @@ export default function HomePage() {
 
       {showModal && <SubscribeModal onClose={() => setShowModal(false)} />}
       {showUnsub && <UnsubscribeModal onClose={() => setShowUnsub(false)} />}
+
+      <footer className="mt-12 pb-6 text-center text-xs text-gray-400 space-y-1">
+        <div className="flex items-center justify-center gap-1">
+          <a
+            href="https://beian.mps.gov.cn/#/query/webSearch?code=12011402001664"
+            rel="noreferrer"
+            target="_blank"
+            className="flex items-center gap-1 hover:text-gray-600"
+          >
+            <img src="/static/备案图标.png" alt="公安备案" className="w-4 h-4" />
+            津公网安备12011402001664号
+          </a>
+          <span className="mx-1">|</span>
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noopener"
+            className="hover:text-gray-600"
+          >
+            津ICP备2026001379号-1
+          </a>
+        </div>
+      </footer>
     </div>
   )
 }
