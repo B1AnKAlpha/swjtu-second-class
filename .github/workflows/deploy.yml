@@ -37,4 +37,29 @@ jobs:
             pm2 save
 
             # 部署后立即清理：删除尚未到报名开始时间的课程
-            node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); const now = new Date().toISOString().replace('T',' ').substring(0,19); prisma.activity.deleteMany({ where: { AND: [{ regStart: { not: '' } }, { regStart: { gt: now } }] } }).then(r => console.log('[deploy] cleaned not-started activities:', r.count)).catch(e => { console.error('[deploy] cleanup failed:', e); process.exitCode = 1; }).finally(() => prisma.$disconnect());"
+            node <<'NODE'
+            const { PrismaClient } = require('@prisma/client')
+
+            async function main() {
+              const prisma = new PrismaClient()
+              try {
+                const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+                const result = await prisma.activity.deleteMany({
+                  where: {
+                    AND: [
+                      { regStart: { not: '' } },
+                      { regStart: { gt: now } },
+                    ],
+                  },
+                })
+                console.log('[deploy] cleaned not-started activities:', result.count)
+              } catch (e) {
+                console.error('[deploy] cleanup failed:', e)
+                process.exitCode = 1
+              } finally {
+                await prisma.$disconnect()
+              }
+            }
+
+            main()
+            NODE
