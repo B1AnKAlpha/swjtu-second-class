@@ -46,6 +46,10 @@ function pickFirstNonEmpty(values: Array<string | undefined>): string {
   return ''
 }
 
+function isNotStartedRegistrationText(text: string): boolean {
+  return /暂未开始报名|未开始报名|报名未开始|未到报名时间/.test(text)
+}
+
 function buildClient() {
   return axios.create({
     timeout: 15000,
@@ -93,6 +97,17 @@ function parseItems(html: string, typeLabel: string): Activity[] {
       $el.find('.bmStartTime').first().text(),
     ])
     const regEnd = $el.find('.endTime').attr('v') ?? ''
+
+    const statusText = pickFirstNonEmpty([
+      $el.find('.btn').text(),
+      $el.find('.apply-btn').text(),
+      $el.find('.sign-btn').text(),
+      $el.find('.list-cont-bottom').text(),
+      $el.text(),
+    ])
+
+    // 页面已标记为“暂未开始报名”的活动直接过滤。
+    if (isNotStartedRegistrationText(statusText)) return
 
     // 报名开始时间晚于当前抓取时间，视为未开放报名，不入库。
     const regStartAt = parseDateTime(regStart)
