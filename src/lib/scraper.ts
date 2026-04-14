@@ -26,6 +26,18 @@ export interface Activity {
   url: string
 }
 
+function parseDateTime(raw: string): Date | null {
+  const text = raw.trim()
+  if (!text) return null
+  const dt = new Date(text.replace(' ', 'T'))
+  return Number.isNaN(dt.getTime()) ? null : dt
+}
+
+function sanitizeLocation(raw: string): string {
+  // 去掉地点尾部重复的报名人数，如“... 0/180”
+  return raw.replace(/\s+\d+\s*\/\s*\d+\s*$/, '').trim()
+}
+
 function buildClient() {
   return axios.create({
     timeout: 15000,
@@ -40,6 +52,7 @@ function buildClient() {
 function parseItems(html: string, typeLabel: string): Activity[] {
   const $ = cheerio.load(html)
   const activities: Activity[] = []
+  const now = new Date()
 
   $('ul.process-list > li').each((_, el) => {
     const $el = $(el)
@@ -60,8 +73,12 @@ function parseItems(html: string, typeLabel: string): Activity[] {
     const registered = parseInt(numSpans.eq(1).text().trim()) || 0
     const capacity = parseInt(numSpans.eq(2).text().replace('/', '').trim()) || 0
 
-    const location = $el.find('.list-cont-bottom span.times').first().text().trim()
+    const location = sanitizeLocation($el.find('.list-cont-bottom span.times').first().text().trim())
     const regEnd = $el.find('.endTime').attr('v') ?? ''
+
+    // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
+    const regEndAt = parseDateTime(regEnd)
+    if (regEndAt && regEndAt <= now) return
 
     activities.push({
       id, title, description, location, startTime,

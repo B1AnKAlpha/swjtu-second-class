@@ -18,21 +18,10 @@
 - **多维筛选**：支持按活动分类、类型（竞赛/讲座/活动）、状态（即将开课/正在进行/已经结束）进行筛选。
 - **智能排序**：未结束的活动优先展示，最新发布的活动带有 `NEW` 标识。
 - **邮件订阅**：
-  - 支持按个人偏好（特定分类和类型）订阅活动通知。
-  - 有新活动发布时，系统会自动发送邮件提醒。
-  - 提供一键退订功能。
-- **响应式设计**：适配 PC 端与移动端。
+  支持按个人偏好（特定分类和类型）订阅活动通知，有新活动发布时，系统会自动发送邮件提醒。提供一键退订功能。
 
-## 技术栈
 
-- **前端框架**：Next.js 14 (App Router) + React
-- **开发语言**：TypeScript
-- **样式方案**：Tailwind CSS
-- **数据库 & ORM**：SQLite + Prisma
-- **核心依赖**：
-  - `cheerio`：解析与抓取网页数据
-  - `node-cron`：执行定时抓取任务
-  - `nodemailer`：发送邮件通知
+
 
 ## 本地运行
 
@@ -94,9 +83,9 @@ pm2 start ecosystem.config.js
 ### GitHub Actions 自动化部署
 项目已配置 CI/CD 工作流。只需在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中配置以下 Secrets，推送到 `main` 分支后即可自动部署到你的服务器：
 - `VPS_HOST`：服务器 IP 地址
-- `VPS_USER`：服务器登录用户名（如 root）
+- `VPS_USER`：服务器登录用户名
 - `VPS_SSH_KEY`：服务器 SSH 私钥
-- `VPS_PORT`：SSH 端口（通常为 22）
+- `VPS_PORT`：SSH 端口
 
 ## 开源协议
 
