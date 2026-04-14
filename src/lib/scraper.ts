@@ -38,6 +38,14 @@ function sanitizeLocation(raw: string): string {
   return raw.replace(/\s+\d+\s*\/\s*\d+\s*$/, '').trim()
 }
 
+function pickFirstNonEmpty(values: Array<string | undefined>): string {
+  for (const value of values) {
+    const text = (value ?? '').trim()
+    if (text) return text
+  }
+  return ''
+}
+
 function buildClient() {
   return axios.create({
     timeout: 15000,
@@ -74,7 +82,21 @@ function parseItems(html: string, typeLabel: string): Activity[] {
     const capacity = parseInt(numSpans.eq(2).text().replace('/', '').trim()) || 0
 
     const location = sanitizeLocation($el.find('.list-cont-bottom span.times').first().text().trim())
+    const regStart = pickFirstNonEmpty([
+      $el.find('.startTime').attr('v'),
+      $el.find('.beginTime').attr('v'),
+      $el.find('.regStart').attr('v'),
+      $el.find('.bmStartTime').attr('v'),
+      $el.find('.startTime').first().text(),
+      $el.find('.beginTime').first().text(),
+      $el.find('.regStart').first().text(),
+      $el.find('.bmStartTime').first().text(),
+    ])
     const regEnd = $el.find('.endTime').attr('v') ?? ''
+
+    // 报名开始时间晚于当前抓取时间，视为未开放报名，不入库。
+    const regStartAt = parseDateTime(regStart)
+    if (regStartAt && regStartAt > now) return
 
     // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
     const regEndAt = parseDateTime(regEnd)
@@ -82,7 +104,7 @@ function parseItems(html: string, typeLabel: string): Activity[] {
 
     activities.push({
       id, title, description, location, startTime,
-      regStart: '', regEnd, capacity, registered,
+      regStart, regEnd, capacity, registered,
       category, type: typeLabel, organizer: '',
       url: `${BASE_URL}/YouthIndex?courseid=${id}&setAction=courseInfo`,
     })
