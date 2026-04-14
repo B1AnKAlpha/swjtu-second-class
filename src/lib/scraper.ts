@@ -46,8 +46,8 @@ function pickFirstNonEmpty(values: Array<string | undefined>): string {
   return ''
 }
 
-function isNotStartedRegistrationText(text: string): boolean {
-  return /暂未开始报名|未开始报名|报名未开始|未到报名时间/.test(text)
+function isNotOpenForRegistration(text: string): boolean {
+  return /不可报名/.test(text)
 }
 
 function buildClient() {
@@ -106,12 +106,8 @@ function parseItems(html: string, typeLabel: string): Activity[] {
       $el.text(),
     ])
 
-    // 页面已标记为“暂未开始报名”的活动直接过滤。
-    if (isNotStartedRegistrationText(statusText)) return
-
-    // 报名开始时间晚于当前抓取时间，视为未开放报名，不入库。
-    const regStartAt = parseDateTime(regStart)
-    if (regStartAt && regStartAt > now) return
+    // 页面已标记“不可报名”的活动直接过滤。
+    if (isNotOpenForRegistration(statusText)) return
 
     // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
     const regEndAt = parseDateTime(regEnd)

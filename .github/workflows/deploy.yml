@@ -36,23 +36,105 @@ jobs:
             pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
             pm2 save
 
-            # 部署后立即清理：删除尚未到报名开始时间的课程
+            # 部署后立即清理：删除源站中标记为“不可报名”的课程
             node <<'NODE'
+            const axios = require('axios')
+            const cheerio = require('cheerio')
             const { PrismaClient } = require('@prisma/client')
+
+            const BASE_URL = 'http://ocw.swjtu.edu.cn/yethan'
+            const LIST_URL = `${BASE_URL}/YouthIndex?setAction=courseList`
+            const TYPE_KEYS = {
+              '竞赛': '61E92EF67418DC54',
+              '讲座': '0E4BF4D36E232918',
+              '活动': '22251884ACC79046',
+            }
+
+            function pickFirstNonEmpty(values) {
+              for (const value of values) {
+                const text = String(value || '').trim()
+                if (text) return text
+              }
+              return ''
+            }
+
+            function isNotOpenForRegistration(text) {
+              return /不可报名/.test(text)
+            }
+
+            async function collectClosedIds(client, key2, maxPages = 3) {
+              const closedIds = new Set()
+              const baseForm = { key1: '', key2, key3: '', key4: '', key5: '', key6: '', key7: '' }
+
+              const firstRes = await client.get(`${LIST_URL}&key2=${key2}`)
+              const pages = [firstRes.data]
+              const $first = cheerio.load(firstRes.data)
+              const totalText = $first('ul li')
+                .filter((_, el) => $first(el).text().includes('共') && $first(el).text().includes('页'))
+                .text()
+              const totalMatch = totalText.match(/共(\d+)页/)
+              const totalPages = totalMatch ? Math.min(parseInt(totalMatch[1], 10), maxPages) : 1
+
+              for (let page = 2; page <= totalPages; page++) {
+                const body = new URLSearchParams({ ...baseForm, jumpPage: String(page) }).toString()
+                const res = await client.post(LIST_URL, body, {
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                })
+                pages.push(res.data)
+              }
+
+              for (const html of pages) {
+                const $ = cheerio.load(html)
+                $('ul.process-list > li').each((_, el) => {
+                  const $el = $(el)
+                  const onclick = $el.find('p.list-tit').attr('onclick') || ''
+                  const idMatch = onclick.match(/getCourseInfo\('([^']+)'\)/)
+                  if (!idMatch) return
+
+                  const statusText = pickFirstNonEmpty([
+                    $el.find('.btn').text(),
+                    $el.find('.apply-btn').text(),
+                    $el.find('.sign-btn').text(),
+                    $el.find('.list-cont-bottom').text(),
+                    $el.text(),
+                  ])
+
+                  if (isNotOpenForRegistration(statusText)) {
+                    closedIds.add(idMatch[1])
+                  }
+                })
+              }
+
+              return closedIds
+            }
 
             async function main() {
               const prisma = new PrismaClient()
+              const client = axios.create({
+                timeout: 15000,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0',
+                  Referer: LIST_URL,
+                  ...(process.env.SWJTU_COOKIE ? { Cookie: process.env.SWJTU_COOKIE } : {}),
+                },
+              })
+
               try {
-                const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+                const closedIds = new Set()
+                for (const key2 of Object.values(TYPE_KEYS)) {
+                  const ids = await collectClosedIds(client, key2)
+                  for (const id of ids) closedIds.add(id)
+                }
+
+                if (closedIds.size === 0) {
+                  console.log('[deploy] no closed activities found to clean')
+                  return
+                }
+
                 const result = await prisma.activity.deleteMany({
-                  where: {
-                    AND: [
-                      { regStart: { not: '' } },
-                      { regStart: { gt: now } },
-                    ],
-                  },
+                  where: { id: { in: Array.from(closedIds) } },
                 })
-                console.log('[deploy] cleaned not-started activities:', result.count)
+                console.log('[deploy] cleaned not-open activities:', result.count)
               } catch (e) {
                 console.error('[deploy] cleanup failed:', e)
                 process.exitCode = 1
