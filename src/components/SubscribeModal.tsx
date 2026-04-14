@@ -11,12 +11,10 @@ const CATEGORIES = [
   '心理素质与身体素质',
   '思想政治与道德素养',
 ]
-const TYPES = ['竞赛', '讲座', '活动']
 
 export default function SubscribeModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState('')
   const [categories, setCategories] = useState<string[]>([])
-  const [types, setTypes] = useState<string[]>([])
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle')
   const [isUpdate, setIsUpdate] = useState(false)
   const [errMsg, setErrMsg] = useState('')
@@ -27,8 +25,8 @@ export default function SubscribeModal({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (categories.length === 0 || types.length === 0) {
-      setErrMsg(categories.length === 0 ? '请至少选择一个活动分类' : '请至少选择一个活动类型')
+    if (categories.length === 0) {
+      setErrMsg('请至少选择一个活动分类')
       setStatus('error')
       return
     }
@@ -36,7 +34,7 @@ export default function SubscribeModal({ onClose }: { onClose: () => void }) {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, categories, types }),
+        body: JSON.stringify({ email, categories }),
       })
       if (!res.ok) {
         const d = await res.json()
@@ -95,24 +93,6 @@ export default function SubscribeModal({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
-
-            <label className="block text-sm font-medium mb-2">活动类型</label>
-            <div className="flex gap-2 mb-5">
-              {TYPES.map(t => (
-                <button
-                  key={t} type="button"
-                  onClick={() => setTypes(toggle(types, t))}
-                  className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
-                    types.includes(t)
-                      ? 'bg-swjtu text-white border-swjtu'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-swjtu'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-
             {status === 'error' && (
               <p className="text-sm text-red-500 mb-3">{errMsg}</p>
             )}

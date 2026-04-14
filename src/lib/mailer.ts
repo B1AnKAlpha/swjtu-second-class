@@ -30,13 +30,11 @@ function activityHtml(a: Activity) {
 export async function sendAdminSubscribeNotice(
   subscriberEmail: string,
   categories: string[],
-  types: string[],
 ) {
   const adminEmail = process.env.ADMIN_EMAIL
   if (!adminEmail) return
 
   const catText = categories.length > 0 ? categories.join('、') : '全部'
-  const typeText = types.length > 0 ? types.join('、') : '全部'
 
   await transporter.sendMail({
     from: `"交大第二课堂" <${process.env.MAIL_USER}>`,
@@ -47,7 +45,6 @@ export async function sendAdminSubscribeNotice(
       <ul>
         <li>邮箱：${subscriberEmail}</li>
         <li>活动分类：${catText}</li>
-        <li>活动类型：${typeText}</li>
       </ul>`,
   })
 }

@@ -4,12 +4,6 @@ import * as cheerio from 'cheerio'
 const BASE_URL = 'http://ocw.swjtu.edu.cn/yethan'
 const LIST_URL = `${BASE_URL}/YouthIndex?setAction=courseList`
 
-const TYPE_KEYS: Record<string, string> = {
-  竞赛: '61E92EF67418DC54',
-  讲座: '0E4BF4D36E232918',
-  活动: '22251884ACC79046',
-}
-
 export interface Activity {
   id: string
   title: string
@@ -61,7 +55,7 @@ function buildClient() {
   })
 }
 
-function parseItems(html: string, typeLabel: string): Activity[] {
+function parseItems(html: string): Activity[] {
   const $ = cheerio.load(html)
   const activities: Activity[] = []
   const now = new Date()
@@ -116,7 +110,7 @@ function parseItems(html: string, typeLabel: string): Activity[] {
     activities.push({
       id, title, description, location, startTime,
       regStart, regEnd, capacity, registered,
-      category, type: typeLabel, organizer: '',
+      category, type: '', organizer: '',
       url: `${BASE_URL}/YouthIndex?courseid=${id}&setAction=courseInfo`,
     })
   })
@@ -124,25 +118,23 @@ function parseItems(html: string, typeLabel: string): Activity[] {
   return activities
 }
 
-async function scrapeByType(
+async function scrapeAll(
   client: ReturnType<typeof buildClient>,
-  typeLabel: string,
-  key2: string,
   maxPages: number,
 ): Promise<Activity[]> {
   const all: Activity[] = []
-  const baseForm = { key1: '', key2, key3: '', key4: '', key5: '', key6: '', key7: '' }
+  const baseForm = { key1: '', key2: '', key3: '', key4: '', key5: '', key6: '', key7: '' }
 
   let firstHtml: string
   try {
-    const res = await client.get(`${LIST_URL}&key2=${key2}`)
+    const res = await client.get(LIST_URL)
     firstHtml = res.data as string
   } catch (err) {
-    console.error(`[scraper] ${typeLabel} 首页请求失败:`, err)
+    console.error('[scraper] 全部活动首页请求失败:', err)
     return []
   }
 
-  all.push(...parseItems(firstHtml, typeLabel))
+  all.push(...parseItems(firstHtml))
 
   const $ = cheerio.load(firstHtml)
   const totalText = $('ul li').filter((_, el) => $(el).text().includes('共') && $(el).text().includes('页')).text()
@@ -155,29 +147,27 @@ async function scrapeByType(
       const res = await client.post(LIST_URL, body, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
-      all.push(...parseItems(res.data as string, typeLabel))
+      all.push(...parseItems(res.data as string))
     } catch (err) {
-      console.error(`[scraper] ${typeLabel} 第 ${page} 页失败:`, err)
+      console.error(`[scraper] 全部活动第 ${page} 页失败:`, err)
     }
     await new Promise(r => setTimeout(r, 300))
   }
 
-  console.log(`[scraper] ${typeLabel} 抓取 ${all.length} 条，${totalPages} 页`)
+  console.log(`[scraper] 全部活动抓取 ${all.length} 条，${totalPages} 页`)
   return all
 }
 
-export async function scrapeActivities(maxPages = 3): Promise<Activity[]> {
+export async function scrapeActivities(maxPages = 20): Promise<Activity[]> {
   const client = buildClient()
   const seen = new Set<string>()
   const all: Activity[] = []
 
-  for (const [typeLabel, key2] of Object.entries(TYPE_KEYS)) {
-    const items = await scrapeByType(client, typeLabel, key2, maxPages)
-    for (const item of items) {
-      if (!seen.has(item.id)) {
-        seen.add(item.id)
-        all.push(item)
-      }
+  const items = await scrapeAll(client, maxPages)
+  for (const item of items) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id)
+      all.push(item)
     }
   }
 

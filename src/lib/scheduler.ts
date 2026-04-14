@@ -91,13 +91,11 @@ export async function runScrapeJob() {
 
   for (const sub of subscribers) {
     const categories: string[] = JSON.parse(sub.categories)
-    const types: string[] = JSON.parse(sub.types)
 
-    // 按订阅过滤（空数组=全部）
+    // 按订阅分类过滤（空数组=全部）
     const matched = newActivities.filter(a => {
       const catOk = categories.length === 0 || categories.includes(a.category)
-      const typeOk = types.length === 0 || types.includes(a.type)
-      return catOk && typeOk
+      return catOk
     })
 
     if (matched.length === 0) continue

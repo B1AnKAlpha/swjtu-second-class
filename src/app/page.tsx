@@ -11,7 +11,6 @@ export default function HomePage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [category, setCategory] = useState('')
-  const [type, setType] = useState('')
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -21,21 +20,19 @@ export default function HomePage() {
     setLoading(true)
     const params = new URLSearchParams({ page: String(page) })
     if (category) params.set('category', category)
-    if (type) params.set('type', type)
     if (status) params.set('status', status)
     const res = await fetch(`/api/activities?${params}`)
     const data = await res.json()
     setItems(data.items)
     setTotal(data.total)
     setLoading(false)
-  }, [page, category, type, status])
+  }, [page, category, status])
 
   useEffect(() => { fetchActivities() }, [fetchActivities])
 
-  function handleFilter(key: 'category' | 'type' | 'status', value: string) {
+  function handleFilter(key: 'category' | 'status', value: string) {
     setPage(1)
     if (key === 'category') setCategory(value)
-    else if (key === 'type') setType(value)
     else setStatus(value)
   }
 
@@ -65,7 +62,7 @@ export default function HomePage() {
       </div>
 
       <div className="mb-6">
-        <FilterBar category={category} type={type} status={status} onChange={handleFilter} />
+        <FilterBar category={category} status={status} onChange={handleFilter} />
       </div>
 
       {loading ? (

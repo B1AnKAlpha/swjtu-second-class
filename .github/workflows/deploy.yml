@@ -44,11 +44,6 @@ jobs:
 
             const BASE_URL = 'http://ocw.swjtu.edu.cn/yethan'
             const LIST_URL = `${BASE_URL}/YouthIndex?setAction=courseList`
-            const TYPE_KEYS = {
-              '竞赛': '61E92EF67418DC54',
-              '讲座': '0E4BF4D36E232918',
-              '活动': '22251884ACC79046',
-            }
 
             function pickFirstNonEmpty(values) {
               for (const value of values) {
@@ -62,11 +57,11 @@ jobs:
               return /不可报名/.test(text)
             }
 
-            async function collectClosedIds(client, key2, maxPages = 3) {
+            async function collectClosedIds(client, maxPages = 20) {
               const closedIds = new Set()
-              const baseForm = { key1: '', key2, key3: '', key4: '', key5: '', key6: '', key7: '' }
+              const baseForm = { key1: '', key2: '', key3: '', key4: '', key5: '', key6: '', key7: '' }
 
-              const firstRes = await client.get(`${LIST_URL}&key2=${key2}`)
+              const firstRes = await client.get(LIST_URL)
               const pages = [firstRes.data]
               const $first = cheerio.load(firstRes.data)
               const totalText = $first('ul li')
@@ -120,11 +115,13 @@ jobs:
               })
 
               try {
-                const closedIds = new Set()
-                for (const key2 of Object.values(TYPE_KEYS)) {
-                  const ids = await collectClosedIds(client, key2)
-                  for (const id of ids) closedIds.add(id)
-                }
+                // 历史订阅和课程统一为“全部类型”（不再区分竞赛/讲座/活动）
+                const normalizedSubs = await prisma.subscriber.updateMany({ data: { types: '[]' } })
+                const normalizedActivities = await prisma.activity.updateMany({ data: { type: '' } })
+                console.log('[deploy] normalized subscriber types:', normalizedSubs.count)
+                console.log('[deploy] normalized activity types:', normalizedActivities.count)
+
+                const closedIds = await collectClosedIds(client)
 
                 if (closedIds.size === 0) {
                   console.log('[deploy] no closed activities found to clean')

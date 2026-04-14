@@ -8,7 +8,6 @@ initScheduler()
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const category = searchParams.get('category') ?? ''
-  const type = searchParams.get('type') ?? ''
   const status = searchParams.get('status') ?? ''
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
   const pageSize = 10
@@ -16,7 +15,6 @@ export async function GET(req: NextRequest) {
   const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
 
   const categoryFilter = category ? Prisma.sql`AND category = ${category}` : Prisma.sql``
-  const typeFilter = type ? Prisma.sql`AND type = ${type}` : Prisma.sql``
 
   // 状态过滤：用 regEnd 近似判断
   // 即将开课：报名未截止（regEnd > now）
@@ -33,11 +31,11 @@ export async function GET(req: NextRequest) {
   const [countResult, items] = await Promise.all([
     prisma.$queryRaw<[{ count: bigint }]>`
       SELECT COUNT(*) as count FROM "Activity"
-      WHERE 1=1 ${categoryFilter} ${typeFilter} ${statusFilter}
+      WHERE 1=1 ${categoryFilter} ${statusFilter}
     `,
     prisma.$queryRaw<Record<string, unknown>[]>`
       SELECT * FROM "Activity"
-      WHERE 1=1 ${categoryFilter} ${typeFilter} ${statusFilter}
+      WHERE 1=1 ${categoryFilter} ${statusFilter}
       ORDER BY
         CASE WHEN regEnd = '' OR regEnd > ${now} THEN 0 ELSE 1 END ASC,
         firstSeen DESC
