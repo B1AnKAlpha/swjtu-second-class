@@ -11,6 +11,52 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+export interface BroadcastNoticeInput {
+  email: string
+  subject: string
+  title: string
+  message: string
+  buttonUrl: string
+  buttonText: string
+}
+
+export async function sendBroadcastNotice(input: BroadcastNoticeInput) {
+  const messageHtml = escapeHtml(input.message).replace(/\n/g, '<br>')
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head><meta charset="UTF-8"><title>${escapeHtml(input.title)}</title></head>
+    <body style="font-family:sans-serif;max-width:620px;margin:0 auto;padding:20px;color:#111827;">
+      <h2 style="color:#003087;border-bottom:2px solid #003087;padding-bottom:8px;">${escapeHtml(input.title)}</h2>
+      <p style="font-size:14px;line-height:1.8;">${messageHtml}</p>
+      <p>
+        <a href="${input.buttonUrl}" style="display:inline-block;padding:8px 14px;background:#003087;color:#fff;border-radius:6px;text-decoration:none;">
+          ${escapeHtml(input.buttonText)}
+        </a>
+      </p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+      <p style="font-size:12px;color:#9ca3af;">此邮件为系统通知邮件。</p>
+    </body>
+    </html>`
+
+  await transporter.sendMail({
+    from: `"交大第二课堂" <${process.env.MAIL_USER}>`,
+    to: input.email,
+    subject: input.subject,
+    html,
+  })
+}
+
 function activityHtml(a: Activity) {
   return `
     <div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px;">

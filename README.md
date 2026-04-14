@@ -70,6 +70,26 @@ npm run dev
 | `MAIL_PASS` | 发件人邮箱密码或授权码 | `your-auth-code` |
 | `NEXT_PUBLIC_BASE_URL` | 网站部署域名（用于生成退订链接） | `https://class.b1ank.cn` |
 | `ADMIN_EMAIL` | 管理员邮箱（接收用户订阅/退订通知） | `admin@example.com` |
+| `ADMIN_BROADCAST_TOKEN` | 管理员群发接口鉴权 token | `replace-with-a-long-random-string` |
+
+## 管理员群发接口
+
+部署后可调用管理员群发接口，向生产数据库中的所有活跃订阅用户发送通知邮件。
+
+```bash
+curl -X POST "https://class.b1ank.cn/api/admin/broadcast" \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: $ADMIN_BROADCAST_TOKEN" \
+  -d '{
+    "subject": "【网站更新通知】西南交大第二课堂监控已更新",
+    "title": "西南交大第二课堂监控网站更新通知",
+    "message": "你好，网站已完成一次功能更新。\n请访问网站查看最新活动。",
+    "buttonText": "打开网站",
+    "buttonUrl": "https://class.b1ank.cn"
+  }'
+```
+
+返回值会包含 `total/success/fail` 统计。
 
 ## 部署指南
 
