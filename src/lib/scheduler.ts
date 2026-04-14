@@ -9,6 +9,21 @@ let initialized = false
 /** 执行一次完整的抓取+通知流程 */
 export async function runScrapeJob() {
   console.log('[scheduler] 开始抓取...')
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+
+  // 清理已入库但尚未开始报名的活动（regStart > 当前时间）
+  const removedNotStarted = await prisma.activity.deleteMany({
+    where: {
+      AND: [
+        { regStart: { not: '' } },
+        { regStart: { gt: now } },
+      ],
+    },
+  })
+  if (removedNotStarted.count > 0) {
+    console.log(`[scheduler] 清理未开始报名活动 ${removedNotStarted.count} 条`)
+  }
+
   let fetchedAll: Activity[]
   try {
     fetchedAll = await scrapeActivities()
