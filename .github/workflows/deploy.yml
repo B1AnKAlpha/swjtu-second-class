@@ -35,3 +35,6 @@ jobs:
             # 用 PM2 重启（首次用 start，之后用 reload）
             pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
             pm2 save
+
+            # 部署后立即清理：删除尚未到报名开始时间的课程
+            node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); const now = new Date().toISOString().replace('T',' ').substring(0,19); prisma.activity.deleteMany({ where: { AND: [{ regStart: { not: '' } }, { regStart: { gt: now } }] } }).then(r => console.log('[deploy] cleaned not-started activities:', r.count)).catch(e => { console.error('[deploy] cleanup failed:', e); process.exitCode = 1; }).finally(() => prisma.$disconnect());"
