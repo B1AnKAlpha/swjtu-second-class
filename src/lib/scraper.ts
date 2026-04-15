@@ -44,6 +44,17 @@ function isNotOpenForRegistration(text: string): boolean {
   return /不可报名/.test(text)
 }
 
+function shouldKeepFullActivity(
+  registered: number,
+  capacity: number,
+  regEndAt: Date | null,
+  now: Date,
+): boolean {
+  if (capacity <= 0 || registered < capacity) return false
+  // 满员但仍在报名期（或无法判断截止时间）时保留，避免名额释放后重复推送。
+  return !regEndAt || regEndAt > now
+}
+
 function buildClient() {
   return axios.create({
     timeout: 15000,
@@ -91,6 +102,7 @@ function parseItems(html: string): Activity[] {
       $el.find('.bmStartTime').first().text(),
     ])
     const regEnd = $el.find('.endTime').attr('v') ?? ''
+    const regEndAt = parseDateTime(regEnd)
 
     const statusText = pickFirstNonEmpty([
       $el.find('.btn').text(),
@@ -100,11 +112,10 @@ function parseItems(html: string): Activity[] {
       $el.text(),
     ])
 
-    // 页面已标记“不可报名”的活动直接过滤。
-    if (isNotOpenForRegistration(statusText)) return
+    // “不可报名”通常要过滤，但满员且仍在报名期内的活动保留。
+    if (isNotOpenForRegistration(statusText) && !shouldKeepFullActivity(registered, capacity, regEndAt, now)) return
 
     // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
-    const regEndAt = parseDateTime(regEnd)
     if (regEndAt && regEndAt <= now) return
 
     activities.push({

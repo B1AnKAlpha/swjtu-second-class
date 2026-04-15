@@ -57,6 +57,18 @@ jobs:
               return /不可报名/.test(text)
             }
 
+            function parseDateTime(raw) {
+              const text = String(raw || '').trim()
+              if (!text) return null
+              const dt = new Date(text.replace(' ', 'T'))
+              return Number.isNaN(dt.getTime()) ? null : dt
+            }
+
+            function shouldKeepFullActivity(registered, capacity, regEndAt, now) {
+              if (capacity <= 0 || registered < capacity) return false
+              return !regEndAt || regEndAt > now
+            }
+
             async function collectClosedIds(client, maxPages = 20) {
               const closedIds = new Set()
               const baseForm = { key1: '', key2: '', key3: '', key4: '', key5: '', key6: '', key7: '' }
@@ -80,11 +92,17 @@ jobs:
 
               for (const html of pages) {
                 const $ = cheerio.load(html)
+                const now = new Date()
                 $('ul.process-list > li').each((_, el) => {
                   const $el = $(el)
                   const onclick = $el.find('p.list-tit').attr('onclick') || ''
                   const idMatch = onclick.match(/getCourseInfo\('([^']+)'\)/)
                   if (!idMatch) return
+
+                  const registered = parseInt($el.find('.cont-num > div:first-child span').eq(1).text().trim(), 10) || 0
+                  const capacity = parseInt($el.find('.cont-num > div:first-child span').eq(2).text().replace('/', '').trim(), 10) || 0
+                  const regEnd = $el.find('.endTime').attr('v') || ''
+                  const regEndAt = parseDateTime(regEnd)
 
                   const statusText = pickFirstNonEmpty([
                     $el.find('.btn').text(),
@@ -94,7 +112,7 @@ jobs:
                     $el.text(),
                   ])
 
-                  if (isNotOpenForRegistration(statusText)) {
+                  if (isNotOpenForRegistration(statusText) && !shouldKeepFullActivity(registered, capacity, regEndAt, now)) {
                     closedIds.add(idMatch[1])
                   }
                 })
