@@ -2,7 +2,7 @@ import cron from 'node-cron'
 import { prisma } from './db'
 import { scrapeActivities } from './scraper'
 import { sendNotification } from './mailer'
-import type { Activity } from './scraper'
+import type { Activity, ScrapeResult } from './scraper'
 
 let initialized = false
 
@@ -10,25 +10,37 @@ let initialized = false
 export async function runScrapeJob() {
   console.log('[scheduler] 开始抓取...')
 
-  let fetchedAll: Activity[]
+  let scrapeResult: ScrapeResult
   try {
-    fetchedAll = await scrapeActivities()
+    scrapeResult = await scrapeActivities()
   } catch (err) {
     console.error('[scheduler] 抓取失败:', err)
     return
   }
 
-  if (fetchedAll.length === 0) return
+  const fetchedAll: Activity[] = scrapeResult.activities
+  const keepIds: string[] = scrapeResult.keepIds
+
+  if (fetchedAll.length === 0 && keepIds.length === 0) return
 
   // 仅保留本次抓取到的前 50 条
   const fetched = fetchedAll.slice(0, 50)
+  const fetchedIds = fetched.map(a => a.id)
+  const protectedIds = Array.from(new Set([...fetchedIds, ...keepIds]))
+
+  // 本轮没有可处理活动时，仅做保留/清理，不触发入库更新与通知。
+  if (fetched.length === 0) {
+    await prisma.activity.deleteMany({
+      where: { id: { notIn: protectedIds } },
+    })
+    console.log(`[scheduler] 本轮无可处理活动，保留满员活动 ${keepIds.length} 条`)
+    return
+  }
 
   // 首次抓取（数据库为空）= 历史数据，isNew 全部为 false
   // 后续抓取出现的新 ID = 真正的新活动，isNew = true
   const existingCount = await prisma.activity.count()
   const isFirstRun = existingCount === 0
-
-  const fetchedIds = fetched.map(a => a.id)
 
   // 找出本轮抓取中数据库里尚不存在的新活动
   const existingIds = isFirstRun
@@ -71,7 +83,7 @@ export async function runScrapeJob() {
 
   // 仅保留本轮抓取到的 50 条，其他历史数据删除
   await prisma.activity.deleteMany({
-    where: { id: { notIn: fetchedIds } },
+    where: { id: { notIn: protectedIds } },
   })
 
   console.log(

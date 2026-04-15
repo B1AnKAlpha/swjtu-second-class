@@ -76,6 +76,12 @@ npm run dev
 
 部署后可调用管理员群发接口，向生产数据库中的所有活跃订阅用户发送通知邮件。
 
+注意：为避免误发，接口要求请求体必须是合法 JSON，且 `message` 不能为空；否则会返回 `400` 并拒绝发送。
+
+接口参数：
+- `target`：`all`（默认，发给所有活跃订阅用户）或 `email`（仅发给指定邮箱）
+- `email`：当 `target=email` 时必填
+
 ```bash
 curl -X POST "https://class.b1ank.cn/api/admin/broadcast" \
   -H "Content-Type: application/json" \
@@ -90,6 +96,58 @@ curl -X POST "https://class.b1ank.cn/api/admin/broadcast" \
 ```
 
 返回值会包含 `total/success/fail` 统计。
+
+仅发给单个邮箱（调试推荐）：
+
+```bash
+curl -X POST "https://class.b1ank.cn/api/admin/broadcast" \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: $ADMIN_BROADCAST_TOKEN" \
+  -d '{
+    "target": "email",
+    "email": "8393455@qq.com",
+    "subject": "【网站更新通知】西南交大第二课堂监控已修复",
+    "title": "西南交大第二课堂监控网站更新通知",
+    "message": "你好，我们这边刚完成了一次小更新。\n已修复重复推送的问题。",
+    "buttonText": "打开网站",
+    "buttonUrl": "https://class.b1ank.cn"
+  }'
+```
+
+全量群发（发给所有活跃订阅用户）：
+
+```bash
+curl -X POST "https://class.b1ank.cn/api/admin/broadcast" \
+  -H "Content-Type: application/json" \
+  -H "x-admin-token: $ADMIN_BROADCAST_TOKEN" \
+  -d '{
+    "target": "all",
+    "subject": "【网站更新通知】西南交大第二课堂监控已修复",
+    "title": "西南交大第二课堂监控网站更新通知",
+    "message": "你好，我们这边刚完成了一次小更新。\n已修复重复推送的问题。",
+    "buttonText": "打开网站",
+    "buttonUrl": "https://class.b1ank.cn"
+  }'
+```
+
+PowerShell（Windows）示例：
+
+```powershell
+$token = "你的ADMIN_BROADCAST_TOKEN"
+$body = @{
+  subject = "【网站更新通知】西南交大第二课堂监控已更新"
+  title = "西南交大第二课堂监控网站更新通知"
+  message = "你好，网站已完成一次功能更新。`n请访问网站查看最新活动。"
+  buttonText = "打开网站"
+  buttonUrl = "https://class.b1ank.cn"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post \
+  -Uri "https://class.b1ank.cn/api/admin/broadcast" \
+  -Headers @{ "x-admin-token" = $token } \
+  -ContentType "application/json" \
+  -Body $body
+```
 
 ## 部署指南
 

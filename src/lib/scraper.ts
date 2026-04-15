@@ -20,6 +20,11 @@ export interface Activity {
   url: string
 }
 
+export interface ScrapeResult {
+  activities: Activity[]
+  keepIds: string[]
+}
+
 function parseDateTime(raw: string): Date | null {
   const text = raw.trim()
   if (!text) return null
@@ -44,6 +49,10 @@ function isNotOpenForRegistration(text: string): boolean {
   return /不可报名/.test(text)
 }
 
+function isFullActivity(registered: number, capacity: number): boolean {
+  return capacity > 0 && registered >= capacity
+}
+
 function shouldKeepFullActivity(
   registered: number,
   capacity: number,
@@ -66,9 +75,10 @@ function buildClient() {
   })
 }
 
-function parseItems(html: string): Activity[] {
+function parseItems(html: string): ScrapeResult {
   const $ = cheerio.load(html)
   const activities: Activity[] = []
+  const keepIds = new Set<string>()
   const now = new Date()
 
   $('ul.process-list > li').each((_, el) => {
@@ -112,8 +122,15 @@ function parseItems(html: string): Activity[] {
       $el.text(),
     ])
 
-    // “不可报名”通常要过滤，但满员且仍在报名期内的活动保留。
-    if (isNotOpenForRegistration(statusText) && !shouldKeepFullActivity(registered, capacity, regEndAt, now)) return
+    // 满员活动不再参与本轮抓取处理；但在报名期内保留其 ID，避免误删数据库已有记录。
+    if (isFullActivity(registered, capacity)) {
+      if (shouldKeepFullActivity(registered, capacity, regEndAt, now)) {
+        keepIds.add(id)
+      }
+      return
+    }
+
+    if (isNotOpenForRegistration(statusText)) return
 
     // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
     if (regEndAt && regEndAt <= now) return
@@ -126,14 +143,15 @@ function parseItems(html: string): Activity[] {
     })
   })
 
-  return activities
+  return { activities, keepIds: Array.from(keepIds) }
 }
 
 async function scrapeAll(
   client: ReturnType<typeof buildClient>,
   maxPages: number,
-): Promise<Activity[]> {
+): Promise<ScrapeResult> {
   const all: Activity[] = []
+  const keepIds = new Set<string>()
   const baseForm = { key1: '', key2: '', key3: '', key4: '', key5: '', key6: '', key7: '' }
 
   let firstHtml: string
@@ -142,10 +160,12 @@ async function scrapeAll(
     firstHtml = res.data as string
   } catch (err) {
     console.error('[scraper] 全部活动首页请求失败:', err)
-    return []
+    return { activities: [], keepIds: [] }
   }
 
-  all.push(...parseItems(firstHtml))
+  const firstParsed = parseItems(firstHtml)
+  all.push(...firstParsed.activities)
+  for (const id of firstParsed.keepIds) keepIds.add(id)
 
   const $ = cheerio.load(firstHtml)
   const totalText = $('ul li').filter((_, el) => $(el).text().includes('共') && $(el).text().includes('页')).text()
@@ -158,7 +178,9 @@ async function scrapeAll(
       const res = await client.post(LIST_URL, body, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
-      all.push(...parseItems(res.data as string))
+      const parsed = parseItems(res.data as string)
+      all.push(...parsed.activities)
+      for (const id of parsed.keepIds) keepIds.add(id)
     } catch (err) {
       console.error(`[scraper] 全部活动第 ${page} 页失败:`, err)
     }
@@ -166,22 +188,24 @@ async function scrapeAll(
   }
 
   console.log(`[scraper] 全部活动抓取 ${all.length} 条，${totalPages} 页`)
-  return all
+  return { activities: all, keepIds: Array.from(keepIds) }
 }
 
-export async function scrapeActivities(maxPages = 20): Promise<Activity[]> {
+export async function scrapeActivities(maxPages = 20): Promise<ScrapeResult> {
   const client = buildClient()
   const seen = new Set<string>()
   const all: Activity[] = []
+  const keepIds = new Set<string>()
 
-  const items = await scrapeAll(client, maxPages)
-  for (const item of items) {
+  const scraped = await scrapeAll(client, maxPages)
+  for (const item of scraped.activities) {
     if (!seen.has(item.id)) {
       seen.add(item.id)
       all.push(item)
     }
   }
+  for (const id of scraped.keepIds) keepIds.add(id)
 
   console.log(`[scraper] 共抓取 ${all.length} 条（去重后）`)
-  return all
+  return { activities: all, keepIds: Array.from(keepIds) }
 }
