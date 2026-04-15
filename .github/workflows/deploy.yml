@@ -58,7 +58,7 @@ jobs:
 
             # 部署后立即清理：删除源站中标记为“不可报名”的课程
             echo '[deploy] cleanup start'
-            node <<'NODE'
+            timeout 8m node <<'NODE'
             const axios = require('axios')
             const cheerio = require('cheerio')
             const { PrismaClient } = require('@prisma/client')
@@ -94,7 +94,9 @@ jobs:
               const closedIds = new Set()
               const baseForm = { key1: '', key2: '', key3: '', key4: '', key5: '', key6: '', key7: '' }
 
+              console.log('[deploy] cleanup fetch first page start')
               const firstRes = await client.get(LIST_URL)
+              console.log('[deploy] cleanup fetch first page done')
               const pages = [firstRes.data]
               const $first = cheerio.load(firstRes.data)
               const totalText = $first('ul li')
@@ -102,15 +104,19 @@ jobs:
                 .text()
               const totalMatch = totalText.match(/共(\d+)页/)
               const totalPages = totalMatch ? Math.min(parseInt(totalMatch[1], 10), maxPages) : 1
+              console.log('[deploy] cleanup total pages:', totalPages)
 
               for (let page = 2; page <= totalPages; page++) {
+                console.log('[deploy] cleanup fetch page start:', page)
                 const body = new URLSearchParams({ ...baseForm, jumpPage: String(page) }).toString()
                 const res = await client.post(LIST_URL, body, {
                   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 })
                 pages.push(res.data)
+                console.log('[deploy] cleanup fetch page done:', page)
               }
 
+              console.log('[deploy] cleanup parse pages start')
               for (const html of pages) {
                 const $ = cheerio.load(html)
                 const now = new Date()
@@ -138,11 +144,13 @@ jobs:
                   }
                 })
               }
+              console.log('[deploy] cleanup parse pages done, closed ids:', closedIds.size)
 
               return closedIds
             }
 
             async function main() {
+              console.log('[deploy] cleanup script main start')
               const prisma = new PrismaClient()
               const client = axios.create({
                 timeout: 15000,
@@ -176,6 +184,7 @@ jobs:
                 process.exitCode = 1
               } finally {
                 await prisma.$disconnect()
+                console.log('[deploy] cleanup script main end')
               }
             }
 
