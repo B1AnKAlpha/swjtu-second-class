@@ -26,7 +26,13 @@ jobs:
 
             # 安装依赖（跳过 devDependencies 外的 optional）
             echo '[deploy] npm ci start'
-            npm ci --omit=optional
+            npm --version
+            npm config set fund false
+            npm config set audit false
+            npm config set fetch-retries 3
+            npm config set fetch-retry-mintimeout 20000
+            npm config set fetch-retry-maxtimeout 120000
+            timeout 12m npm ci --omit=optional --no-audit --no-fund --loglevel=warn
             echo '[deploy] npm ci done'
 
             # 生成 Prisma Client + 执行数据库迁移
