@@ -20,23 +20,38 @@ jobs:
             cd /opt/swjtu-monitor
 
             # 拉取最新代码
+            echo '[deploy] git pull start'
             git pull origin main
+            echo '[deploy] git pull done'
 
             # 安装依赖（跳过 devDependencies 外的 optional）
+            echo '[deploy] npm ci start'
             npm ci --omit=optional
+            echo '[deploy] npm ci done'
 
             # 生成 Prisma Client + 执行数据库迁移
+            echo '[deploy] prisma generate start'
             npx prisma generate
+            echo '[deploy] prisma generate done'
+            echo '[deploy] prisma migrate deploy start'
             npx prisma migrate deploy
+            echo '[deploy] prisma migrate deploy done'
 
             # 构建 Next.js
+            echo '[deploy] npm run build start'
             npm run build
+            echo '[deploy] npm run build done'
 
             # 用 PM2 重启（首次用 start，之后用 reload）
+            echo '[deploy] pm2 reload/start start'
             pm2 reload ecosystem.config.js --update-env || pm2 start ecosystem.config.js
+            echo '[deploy] pm2 reload/start done'
+            echo '[deploy] pm2 save start'
             pm2 save
+            echo '[deploy] pm2 save done'
 
             # 部署后立即清理：删除源站中标记为“不可报名”的课程
+            echo '[deploy] cleanup start'
             node <<'NODE'
             const axios = require('axios')
             const cheerio = require('cheerio')
@@ -160,3 +175,4 @@ jobs:
 
             main()
             NODE
+            echo '[deploy] cleanup done'
