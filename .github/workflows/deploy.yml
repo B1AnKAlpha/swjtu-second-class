@@ -32,7 +32,15 @@ jobs:
             npm config set fetch-retries 3
             npm config set fetch-retry-mintimeout 20000
             npm config set fetch-retry-maxtimeout 120000
-            timeout 12m npm ci --omit=optional --no-audit --no-fund --loglevel=warn
+            if [ -d node_modules ]; then
+              echo '[deploy] npm install incremental start'
+              timeout 8m npm install --omit=optional --no-audit --no-fund --loglevel=error
+              echo '[deploy] npm install incremental done'
+            else
+              echo '[deploy] npm ci cold start'
+              timeout 12m npm ci --omit=optional --no-audit --no-fund --loglevel=error
+              echo '[deploy] npm ci cold start done'
+            fi
             echo '[deploy] npm ci done'
 
             # 生成 Prisma Client + 执行数据库迁移
