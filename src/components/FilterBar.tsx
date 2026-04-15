@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-const STATUSES = ['即将开课', '正在进行', '已经结束']
+const STATUSES = ['报名人数未满', '报名人数已满']
 
 interface Props {
   category: string

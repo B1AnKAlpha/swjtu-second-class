@@ -12,18 +12,14 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
   const pageSize = 10
 
-  const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
-
   const categoryFilter = category ? Prisma.sql`AND category = ${category}` : Prisma.sql``
 
-  // 状态过滤：用 regEnd 近似判断
-  // 即将开课：报名未截止（regEnd > now）
-  // 正在进行：无截止时间（regEnd = ''）
-  // 已经结束：报名已截止（regEnd != '' AND regEnd < now）
+  // 状态过滤：按报名人数判断
+  // 报名人数未满：capacity > 0 且 registered < capacity
+  // 报名人数已满：capacity > 0 且 registered >= capacity
   const statusFilter =
-    status === '即将开课' ? Prisma.sql`AND regEnd > ${now}` :
-    status === '正在进行' ? Prisma.sql`AND regEnd = ''` :
-    status === '已经结束' ? Prisma.sql`AND regEnd != '' AND regEnd < ${now}` :
+    status === '报名人数未满' ? Prisma.sql`AND capacity > 0 AND registered < capacity` :
+    status === '报名人数已满' ? Prisma.sql`AND capacity > 0 AND registered >= capacity` :
     Prisma.sql``
 
   const offset = (page - 1) * pageSize
@@ -37,7 +33,6 @@ export async function GET(req: NextRequest) {
       SELECT * FROM "Activity"
       WHERE 1=1 ${categoryFilter} ${statusFilter}
       ORDER BY
-        CASE WHEN regEnd = '' OR regEnd > ${now} THEN 0 ELSE 1 END ASC,
         firstSeen DESC
       LIMIT ${pageSize} OFFSET ${offset}
     `,
