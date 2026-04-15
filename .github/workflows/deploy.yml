@@ -27,6 +27,15 @@ jobs:
             # 安装依赖（跳过 devDependencies 外的 optional）
             echo '[deploy] npm ci start'
             npm --version
+            echo '[deploy] permission check start'
+            if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+              echo '[deploy] fixing workspace ownership via sudo chown'
+              sudo chown -R "$(id -u):$(id -g)" /opt/swjtu-monitor
+              echo '[deploy] workspace ownership fixed'
+            else
+              echo '[deploy] skip chown (sudo not available in non-interactive mode)'
+            fi
+            echo '[deploy] permission check done'
             npm config set fund false
             npm config set audit false
             npm config set fetch-retries 3
@@ -34,8 +43,14 @@ jobs:
             npm config set fetch-retry-maxtimeout 120000
             if [ -d node_modules ]; then
               echo '[deploy] npm install incremental start'
-              timeout 8m npm install --omit=optional --no-audit --no-fund --loglevel=error
-              echo '[deploy] npm install incremental done'
+              if timeout 8m npm install --omit=optional --no-audit --no-fund --loglevel=error; then
+                echo '[deploy] npm install incremental done'
+              else
+                echo '[deploy] npm install incremental failed, fallback to clean install'
+                rm -rf node_modules
+                timeout 12m npm ci --omit=optional --no-audit --no-fund --loglevel=error
+                echo '[deploy] npm ci fallback done'
+              fi
             else
               echo '[deploy] npm ci cold start'
               timeout 12m npm ci --omit=optional --no-audit --no-fund --loglevel=error
