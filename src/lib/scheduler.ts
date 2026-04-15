@@ -6,6 +6,20 @@ import type { Activity, ScrapeResult } from './scraper'
 
 let initialized = false
 
+async function refreshNewFlagsByFirstSeen() {
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+
+  await prisma.activity.updateMany({
+    where: { firstSeen: { gte: threeDaysAgo } },
+    data: { isNew: true },
+  })
+
+  await prisma.activity.updateMany({
+    where: { firstSeen: { lt: threeDaysAgo } },
+    data: { isNew: false },
+  })
+}
+
 /** 执行一次完整的抓取+通知流程 */
 export async function runScrapeJob() {
   console.log('[scheduler] 开始抓取...')
@@ -33,12 +47,12 @@ export async function runScrapeJob() {
     await prisma.activity.deleteMany({
       where: { id: { notIn: protectedIds } },
     })
+    await refreshNewFlagsByFirstSeen()
     console.log(`[scheduler] 本轮无可处理活动，保留满员活动 ${keepIds.length} 条`)
     return
   }
 
-  // 首次抓取（数据库为空）= 历史数据，isNew 全部为 false
-  // 后续抓取出现的新 ID = 真正的新活动，isNew = true
+  // 首次抓取用于控制是否发送通知（首次初始化不发）。
   const existingCount = await prisma.activity.count()
   const isFirstRun = existingCount === 0
 
@@ -75,7 +89,7 @@ export async function runScrapeJob() {
         create: {
           ...a,
           notified: isFirstRun,
-          isNew: !isFirstRun,
+          isNew: true,
         },
       })
     )
@@ -85,6 +99,9 @@ export async function runScrapeJob() {
   await prisma.activity.deleteMany({
     where: { id: { notIn: protectedIds } },
   })
+
+  // 每轮抓取后按“入库时间距当前是否<=3天”统一刷新 NEW 标记。
+  await refreshNewFlagsByFirstSeen()
 
   console.log(
     `[scheduler] 同步 ${fetched.length} 条（新增 ${newActivities.length} 条）${isFirstRun ? '（首次初始化，不发通知）' : ''}`
