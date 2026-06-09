@@ -124,12 +124,10 @@ function parseItems(html: string): ScrapeResult {
       $el.text(),
     ])
 
-    // 满员活动不再参与本轮抓取处理；但在报名期内保留其 ID，避免误删数据库已有记录。
-    if (isFullActivity(registered, capacity)) {
-      if (shouldKeepFullActivity(registered, capacity, regEndAt, now)) {
-        keepIds.add(id)
-      }
-      return
+    // 满员活动也入库展示，同时在报名期内保留其 ID。
+    const isFull = isFullActivity(registered, capacity)
+    if (isFull && shouldKeepFullActivity(registered, capacity, regEndAt, now)) {
+      keepIds.add(id)
     }
 
     // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
