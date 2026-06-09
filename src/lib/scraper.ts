@@ -132,8 +132,6 @@ function parseItems(html: string): ScrapeResult {
       return
     }
 
-    if (isNotOpenForRegistration(statusText)) return
-
     // 退课/报名截止时间已早于当前抓取时间的课程，视为不可选，不入库。
     if (regEndAt && regEndAt <= now) return
 

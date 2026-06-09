@@ -163,7 +163,12 @@ jobs:
                     $el.text(),
                   ])
 
-                  if (isNotOpenForRegistration(statusText) && !shouldKeepFullActivity(registered, capacity, regEndAt, now)) {
+                  // 仅清理真正过期的活动：满员且报名期已过，或报名截止时间已过
+                  const isFull = capacity > 0 && registered >= capacity
+                  const keepFull = shouldKeepFullActivity(registered, capacity, regEndAt, now)
+                  const isPastDeadline = regEndAt && regEndAt <= now
+
+                  if ((isFull && !keepFull) || isPastDeadline) {
                     closedIds.add(idMatch[1])
                   }
                 })
