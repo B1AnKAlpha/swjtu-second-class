@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>微信Scheme测试</title>
+<style>body{font-family:sans-serif;padding:20px;max-width:500px;margin:0 auto}a{display:block;padding:14px;margin:10px 0;border-radius:8px;text-decoration:none;font-size:15px;text-align:center}.t1{background:#07c160;color:#fff}.t2{background:#576b95;color:#fff}.t3{background:#ff6b35;color:#fff}.t4{background:#333;color:#fff}.t5{background:#e74c3c;color:#fff}.t6{background:#8e44ad;color:#fff}code{word-break:break-all;font-size:11px}</style></head>
+<body>
+<h2>微信 Scheme 唤起测试</h2>
+<p style="color:#999;font-size:13px">请在<b>手机浏览器</b>中打开此页面。wx502a463f51c6ae03</p>
+
+<a class="t1" href="weixin://">1. 最简: weixin://</a>
+<a class="t2" href="weixin://dl/businessWebview/link/?appid=wx502a463f51c6ae03&url=http://ocw.swjtu.edu.cn/yethan/YouthIndex?setAction=courseList">2. businessWebview — 课程列表</a>
+<a class="t3" href="weixin://dl/businessWebview/link/?appid=wx502a463f51c6ae03&url=http://ocw.swjtu.edu.cn/yethan/YouthIndex?courseid=F1683EA624DA9008&setAction=courseInfo">3. businessWebview — 活动详情</a>
+<a class="t4" href="weixin://dl/businessWebview/link/?appid=wx502a463f51c6ae03&url=https://class.b1ank.cn">4. businessWebview — 我们网站(https)</a>
+<a class="t5" href="weixin://dl/business/?appid=wx502a463f51c6ae03&path=pages/index/index">5. 小程序方式: weixin://dl/business/</a>
+<a class="t6" href="javascript:(function(){var u='weixin://dl/businessWebview/link/?appid=wx502a463f51c6ae03&url='+encodeURIComponent('http://ocw.swjtu.edu.cn/yethan/YouthIndex?setAction=courseList');location.href=u})()">6. JS redirect 方式</a>
+
+<hr>
+<p style="color:#999;font-size:12px">如果链接可以唤起微信：1234 → 能跳转微信但不能打开网页 → 公众号/订阅号受限, 5 → 能跳转微信但不能打开小程序 → 未注册小程序</p>
+<p style="color:#999;font-size:12px">如果都不行 → 说明 businessWebview 非官方接口，不稳定/已失效</p>
+</body>
+</html>
