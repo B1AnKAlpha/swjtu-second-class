@@ -68,7 +68,8 @@ function buildClient() {
   return axios.create({
     timeout: 15000,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G9910) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/107.0.5304.105 Mobile Safari/537.36 MMWEBID/2972 MicroMessenger/8.0.38.2420(0x2800263A) WeChat/arm64 Weixin NetType/WIFI Language/zh_CN ABI/arm64',
+      'X-Requested-With': 'com.tencent.mm',
       Referer: LIST_URL,
       ...(process.env.SWJTU_COOKIE ? { Cookie: process.env.SWJTU_COOKIE } : {}),
     },
@@ -118,6 +119,7 @@ function parseItems(html: string): ScrapeResult {
       $el.find('.btn').text(),
       $el.find('.apply-btn').text(),
       $el.find('.sign-btn').text(),
+      $el.find('.cont-btn').text(),
       $el.find('.list-cont-bottom').text(),
       $el.text(),
     ])

@@ -67,6 +67,13 @@ export async function runScrapeJob() {
       )
   const newActivities = fetched.filter(a => !existingIds.has(a.id))
 
+  // 恢复检测：如果本轮超过 40% 的活动在 DB 中不存在，说明 DB 数据已过期
+  // （网站恢复访问或活动大量轮换），此时跳过通知避免 spam。
+  const isRecoveryRun =
+    !isFirstRun &&
+    fetched.length > 0 &&
+    newActivities.length > fetched.length * 0.4
+
   // 每轮都同步活动数据（含已报名人数），已存在记录会被更新
   await prisma.$transaction(
     fetched.map(a =>
@@ -88,7 +95,7 @@ export async function runScrapeJob() {
         },
         create: {
           ...a,
-          notified: isFirstRun,
+          notified: isFirstRun || isRecoveryRun,
           isNew: true,
         },
       })
@@ -104,11 +111,11 @@ export async function runScrapeJob() {
   await refreshNewFlagsByFirstSeen()
 
   console.log(
-    `[scheduler] 同步 ${fetched.length} 条（新增 ${newActivities.length} 条）${isFirstRun ? '（首次初始化，不发通知）' : ''}`
+    `[scheduler] 同步 ${fetched.length} 条（新增 ${newActivities.length} 条）${isFirstRun ? '（首次初始化，不发通知）' : ''}${isRecoveryRun ? '（恢复运行，跳过通知）' : ''}`
   )
 
-  // 首次初始化不发邮件
-  if (isFirstRun) return
+  // 首次初始化或恢复运行时不发邮件
+  if (isFirstRun || isRecoveryRun) return
 
   if (newActivities.length === 0) {
     console.log('[scheduler] 无新活动')
